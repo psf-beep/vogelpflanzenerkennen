@@ -8,7 +8,12 @@ export default function SpeciesInfoCard({ species }: { species: Species }) {
   return (
     <article className="overflow-hidden rounded-3xl bg-surface shadow-lg ring-1 ring-black/5">
       <div className="aspect-[4/3] w-full bg-leaf-soft">
-        <SpeciesImage src={species.image_url} alt={species.name_common} type={species.type} />
+        <SpeciesImage
+          src={species.image_url}
+          scientificName={species.name_scientific}
+          alt={species.name_common}
+          type={species.type}
+        />
       </div>
 
       <div className="flex flex-col gap-3 p-5">

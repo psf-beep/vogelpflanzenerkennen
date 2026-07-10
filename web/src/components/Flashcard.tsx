@@ -40,6 +40,7 @@ export default function Flashcard({ species, onCorrect, onNext }: FlashcardProps
       <div className="aspect-[4/3] w-full bg-leaf-soft">
         <SpeciesImage
           src={species.image_url}
+          scientificName={species.name_scientific}
           alt={species.name_common}
           type={species.type}
           revealAlt={revealed}
