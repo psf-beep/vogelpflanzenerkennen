@@ -76,7 +76,8 @@ export default function SpeciesImage({
     <img
       src={resolvedSrc}
       alt={revealAlt ? alt : "Zu erratende Art"}
-      className="h-full w-full object-cover"
+      // object-contain: ganzes Tier immer sichtbar (Kopf wird nicht abgeschnitten).
+      className="h-full w-full bg-leaf-soft object-contain"
       onError={() => setImgError(true)}
     />
   );
