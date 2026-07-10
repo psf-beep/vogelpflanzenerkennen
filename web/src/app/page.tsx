@@ -13,6 +13,8 @@ import {
   emptyProgress,
   levelPoints,
   loadProgress,
+  MAX_LEVEL,
+  pointsToAdvance,
   recordAnswer,
   saveProgress,
   totalPoints,
@@ -38,6 +40,8 @@ export default function GamePage() {
   const [index, setIndex] = useState(0);
   const [nodding, setNodding] = useState(false);
   const [award, setAward] = useState(0); // Punkte der zuletzt beantworteten Karte
+  const [pendingLevelUp, setPendingLevelUp] = useState(0); // Aufstieg beim nächsten Kartenwechsel
+  const [leveledUpTo, setLeveledUpTo] = useState(0); // Erfolgsmeldung im Panel
 
   // Gespeicherten Fortschritt nach dem Laden übernehmen (async, um Hydration-
   // Konflikte zu vermeiden – setState nur im Callback).
@@ -68,38 +72,64 @@ export default function GamePage() {
     };
   }, [category, includeForeign, level]);
 
-  // Ergebnis einer Karte verbuchen: Punkte, Freischaltung, Tukan-Nicken.
+  // Ergebnis einer Karte verbuchen: Punkte, Freischaltung, Aufstieg, Tukan-Nicken.
   const handleResult = useCallback(
     (correct: boolean) => {
-      setProgress((prev) => {
-        const { progress: next, awarded } = recordAnswer(prev, level, correct);
-        saveProgress(next);
-        setAward(awarded);
-        return next;
-      });
+      const needed = pointsToAdvance(level);
+      const before = levelPoints(progress, level);
+      const { progress: next, awarded } = recordAnswer(progress, level, correct);
+      const after = levelPoints(next, level);
+
+      saveProgress(next);
+      setProgress(next);
+      setAward(awarded);
+      setLeveledUpTo(0);
+
+      // Zielpunktzahl gerade überschritten → beim nächsten Kartenwechsel aufsteigen.
+      if (level < MAX_LEVEL && before < needed && after >= needed) {
+        setPendingLevelUp(level + 1);
+      }
+
       if (correct) {
         setNodding(true);
         setTimeout(() => setNodding(false), 750);
       }
     },
-    [level],
+    [level, progress],
   );
 
-  // Nächste Karte; am Ende des Stapels neu mischen.
+  // Nächste Karte – oder Aufstieg ins nächste Level (Punktezähler startet dort bei 0).
   const handleNext = useCallback(() => {
     setAward(0);
+    if (pendingLevelUp > 0) {
+      const target = pendingLevelUp;
+      setPendingLevelUp(0);
+      setLeveledUpTo(target);
+      setTimeout(() => setLeveledUpTo(0), 4000);
+      setLevel(target); // löst Kartenneuladen + Zähler-Reset (neues Level) aus
+      return;
+    }
     setIndex((prev) => {
-      const next = prev + 1;
-      if (next < deck.length) return next;
+      const nextIndex = prev + 1;
+      if (nextIndex < deck.length) return nextIndex;
       setDeck((d) => shuffle(d));
       return 0;
     });
-  }, [deck.length]);
+  }, [pendingLevelUp, deck.length]);
+
+  // Manuelle Levelauswahl bricht einen anstehenden Aufstieg ab.
+  const handleSelectLevel = useCallback((n: number) => {
+    setPendingLevelUp(0);
+    setLeveledUpTo(0);
+    setLevel(n);
+  }, []);
 
   const handleReset = useCallback(() => {
     const fresh = emptyProgress();
     saveProgress(fresh);
     setProgress(fresh);
+    setPendingLevelUp(0);
+    setLeveledUpTo(0);
     setLevel(1);
   }, []);
 
@@ -126,13 +156,13 @@ export default function GamePage() {
             <LevelSelector
               level={level}
               unlockedLevel={progress.unlockedLevel}
-              onSelect={setLevel}
+              onSelect={handleSelectLevel}
             />
             <NativeToggle includeForeign={includeForeign} onChange={setIncludeForeign} />
 
             {current ? (
               <Flashcard
-                key={current.id + index}
+                key={current.id + index + "-" + level}
                 species={current}
                 onResult={handleResult}
                 onNext={handleNext}
@@ -152,9 +182,10 @@ export default function GamePage() {
           <aside className="order-first lg:order-none lg:sticky lg:top-4">
             <ScorePanel
               level={level}
-              total={totalPoints(progress)}
               levelPoints={levelPoints(progress, level)}
+              total={totalPoints(progress)}
               unlockedLevel={progress.unlockedLevel}
+              leveledUpTo={leveledUpTo}
               onReset={handleReset}
             />
           </aside>
