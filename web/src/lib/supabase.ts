@@ -1,13 +1,19 @@
-// Supabase-Client (für später vorbereitet).
+// Supabase-Client.
 //
-// In Phase 1 arbeiten wir noch mit Seed-Daten (siehe species-repo.ts), daher
-// wird dieser Client aktuell noch nicht genutzt. Sobald das Supabase-Projekt
-// steht, die Werte in .env.local eintragen (Vorlage: .env.local.example) und
-// in species-repo.ts auf die Supabase-Abfrage umstellen.
+// Sobald die Werte in web/.env.local gesetzt sind (Vorlage: .env.local.example),
+// liest die App automatisch aus Supabase (siehe species-repo.ts). Ohne diese
+// Werte fällt die App auf die Testdaten zurück – nichts geht kaputt.
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 let client: SupabaseClient | null = null;
+
+// Ist Supabase überhaupt konfiguriert?
+export function isSupabaseConfigured(): boolean {
+  return Boolean(
+    process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+  );
+}
 
 export function getSupabaseClient(): SupabaseClient {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
