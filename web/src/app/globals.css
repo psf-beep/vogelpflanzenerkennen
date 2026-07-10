@@ -1,0 +1,90 @@
+@import "tailwindcss";
+
+/* -------------------------------------------------------------------------
+   Farbpalette: natürlich (Grün-/Erdtöne), verspielt-bunt akzentuiert.
+   Siehe Design-Vorgaben in CLAUDE.md.
+   ------------------------------------------------------------------------- */
+:root {
+  --background: #f6f5ee; /* warmes Off-White */
+  --surface: #ffffff;
+  --foreground: #23372b; /* dunkles Waldgrün */
+  --muted: #6b7d6f;
+
+  --leaf: #3f8c5b; /* Hauptgrün */
+  --leaf-dark: #2f6d46;
+  --leaf-soft: #e5f1e6;
+
+  --sun: #f4b942; /* Sonnengelb */
+  --coral: #ef6f5b; /* Koralle (Akzent / falsch) */
+  --sky: #5bb0e0; /* Himmelblau */
+  --earth: #b98a5e; /* Erdton */
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #14201a;
+    --surface: #1e2c24;
+    --foreground: #eaf1ea;
+    --muted: #9fb3a4;
+    --leaf-soft: #26382c;
+  }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-leaf: var(--leaf);
+  --color-leaf-dark: var(--leaf-dark);
+  --color-leaf-soft: var(--leaf-soft);
+  --color-sun: var(--sun);
+  --color-coral: var(--coral);
+  --color-sky: var(--sky);
+  --color-earth: var(--earth);
+  --font-sans: var(--font-nunito);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-nunito), system-ui, sans-serif;
+}
+
+/* Tukan-Schnabel-Nicken bei richtiger Antwort (einfache CSS-Animation). */
+@keyframes toucan-nod {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(14deg);
+  }
+  55% {
+    transform: rotate(-6deg);
+  }
+  80% {
+    transform: rotate(8deg);
+  }
+}
+
+.toucan-nod {
+  transform-origin: 60% 45%;
+  animation: toucan-nod 0.7s ease-in-out;
+}
+
+/* Sanftes Einblenden der Auflösung. */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-up {
+  animation: fade-up 0.35s ease-out;
+}

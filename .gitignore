@@ -1,0 +1,13 @@
+# Node / Next.js Build-Artefakte
+node_modules/
+web/.next/
+web/out/
+web/next-env.d.ts
+
+# lokale Umgebungsvariablen
+.env
+.env.local
+web/.env*.local
+
+# Betriebssystem
+.DS_Store
