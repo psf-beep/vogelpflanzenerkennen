@@ -3,13 +3,21 @@
 import { useCallback, useEffect, useState } from "react";
 import CategorySlider, { type Category } from "@/components/CategorySlider";
 import NativeToggle from "@/components/NativeToggle";
+import LevelSelector from "@/components/LevelSelector";
+import ScorePanel from "@/components/ScorePanel";
 import Flashcard from "@/components/Flashcard";
 import SiteHeader from "@/components/SiteHeader";
 import { getSpecies } from "@/lib/species-repo";
 import type { Species } from "@/data/species";
-
-// Startseite = das Spiel. MVP: nur Level 1 pro Kategorie.
-const MVP_LEVELS = [1];
+import {
+  emptyProgress,
+  levelPoints,
+  loadProgress,
+  recordAnswer,
+  saveProgress,
+  totalPoints,
+  type Progress,
+} from "@/lib/game-progress";
 
 // Mischt ein Array zufällig (Fisher-Yates).
 function shuffle<T>(items: T[]): T[] {
@@ -24,16 +32,31 @@ function shuffle<T>(items: T[]): T[] {
 export default function GamePage() {
   const [category, setCategory] = useState<Category>("bird");
   const [includeForeign, setIncludeForeign] = useState(true);
+  const [level, setLevel] = useState(1);
+  const [progress, setProgress] = useState<Progress>(emptyProgress());
   const [deck, setDeck] = useState<Species[]>([]);
   const [index, setIndex] = useState(0);
   const [nodding, setNodding] = useState(false);
+  const [award, setAward] = useState(0); // Punkte der zuletzt beantworteten Karte
 
-  // Karten neu laden, wenn Kategorie oder Toggle sich ändern.
+  // Gespeicherten Fortschritt nach dem Laden übernehmen (async, um Hydration-
+  // Konflikte zu vermeiden – setState nur im Callback).
+  useEffect(() => {
+    let active = true;
+    Promise.resolve().then(() => {
+      if (active) setProgress(loadProgress());
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  // Karten neu laden, wenn Kategorie, Toggle oder Level sich ändern.
   useEffect(() => {
     let active = true;
     getSpecies({
       type: category === "both" ? undefined : category,
-      levels: MVP_LEVELS,
+      levels: [level],
       includeForeign,
     }).then((result) => {
       if (!active) return;
@@ -43,16 +66,28 @@ export default function GamePage() {
     return () => {
       active = false;
     };
-  }, [category, includeForeign]);
+  }, [category, includeForeign, level]);
 
-  // Tukan nickt kurz bei richtiger Antwort.
-  const handleCorrect = useCallback(() => {
-    setNodding(true);
-    setTimeout(() => setNodding(false), 750);
-  }, []);
+  // Ergebnis einer Karte verbuchen: Punkte, Freischaltung, Tukan-Nicken.
+  const handleResult = useCallback(
+    (correct: boolean) => {
+      setProgress((prev) => {
+        const { progress: next, awarded } = recordAnswer(prev, level, correct);
+        saveProgress(next);
+        setAward(awarded);
+        return next;
+      });
+      if (correct) {
+        setNodding(true);
+        setTimeout(() => setNodding(false), 750);
+      }
+    },
+    [level],
+  );
 
   // Nächste Karte; am Ende des Stapels neu mischen.
   const handleNext = useCallback(() => {
+    setAward(0);
     setIndex((prev) => {
       const next = prev + 1;
       if (next < deck.length) return next;
@@ -61,47 +96,73 @@ export default function GamePage() {
     });
   }, [deck.length]);
 
+  const handleReset = useCallback(() => {
+    const fresh = emptyProgress();
+    saveProgress(fresh);
+    setProgress(fresh);
+    setLevel(1);
+  }, []);
+
   const current = deck[index];
 
   return (
     <>
       <SiteHeader nodding={nodding} />
 
-      <main className="flex flex-1 flex-col items-center gap-6 px-4 py-6">
-        <div className="text-center">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
+        <div className="mb-6 text-center">
           <h1 className="text-2xl font-extrabold text-foreground sm:text-3xl">
             Erkennst du diese Art?
           </h1>
           <p className="mt-1 text-muted">
-            Wähle eine Kategorie und rate den Namen zum Bild.
+            Wähle Kategorie und Level und rate den Namen zum Bild.
           </p>
         </div>
 
-        {/* Steuerung: Kategorie + Ausländisch-Toggle */}
-        <div className="flex w-full max-w-md flex-col items-center gap-4">
-          <CategorySlider value={category} onChange={setCategory} />
-          <NativeToggle includeForeign={includeForeign} onChange={setIncludeForeign} />
-        </div>
+        <div className="grid gap-6 lg:grid-cols-[1fr_300px] lg:items-start">
+          {/* Spielbereich */}
+          <div className="flex flex-col items-center gap-5">
+            <CategorySlider value={category} onChange={setCategory} />
+            <LevelSelector
+              level={level}
+              unlockedLevel={progress.unlockedLevel}
+              onSelect={setLevel}
+            />
+            <NativeToggle includeForeign={includeForeign} onChange={setIncludeForeign} />
 
-        {/* Lernkarte oder Hinweis, falls keine Arten passen */}
-        {current ? (
-          <Flashcard
-            key={current.id + index}
-            species={current}
-            onCorrect={handleCorrect}
-            onNext={handleNext}
-          />
-        ) : (
-          <p className="rounded-2xl bg-surface px-6 py-8 text-center text-muted shadow">
-            Für diese Auswahl gibt es aktuell keine Karten.
-            <br />
-            Schalte die ausländischen Arten ein oder wähle eine andere Kategorie.
-          </p>
-        )}
+            {current ? (
+              <Flashcard
+                key={current.id + index}
+                species={current}
+                onResult={handleResult}
+                onNext={handleNext}
+                awardedPoints={award}
+              />
+            ) : (
+              <p className="rounded-2xl bg-surface px-6 py-8 text-center text-muted shadow">
+                Für diese Auswahl gibt es aktuell keine Karten.
+                <br />
+                Schalte die ausländischen Arten ein oder wähle eine andere
+                Kategorie bzw. ein anderes Level.
+              </p>
+            )}
+          </div>
+
+          {/* Punktestand (rechts; auf kleinen Bildschirmen darüber) */}
+          <aside className="order-first lg:order-none lg:sticky lg:top-4">
+            <ScorePanel
+              level={level}
+              total={totalPoints(progress)}
+              levelPoints={levelPoints(progress, level)}
+              unlockedLevel={progress.unlockedLevel}
+              onReset={handleReset}
+            />
+          </aside>
+        </div>
       </main>
 
       <footer className="px-4 py-4 text-center text-xs text-muted">
-        Testdaten · Bilder von Wikimedia Commons – Lizenzen vor Produktivbetrieb prüfen
+        Fotos automatisch von Wikipedia – Lizenzen vor Produktivbetrieb prüfen
       </footer>
     </>
   );

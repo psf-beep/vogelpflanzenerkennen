@@ -1,6 +1,6 @@
-// Prüft die geratene Antwort gegen den Namen einer Art.
+// Prüft die geratene Antwort gegen die gültigen Namen einer Art.
 // Grosszügig: Gross-/Kleinschreibung, führende Artikel und kleine Tippfehler
-// werden verziehen.
+// werden verziehen. Mehrere gültige Namen (z. B. Stieglitz / Distelfink) möglich.
 
 function normalize(text: string): string {
   return text
@@ -24,13 +24,18 @@ function levenshtein(a: string, b: string): number {
   return dp[a.length][b.length];
 }
 
-export function isAnswerCorrect(guess: string, correctName: string): boolean {
-  const g = normalize(guess);
-  const c = normalize(correctName);
-  if (!g) return false;
-  if (g === c) return true;
-
+function matchesOne(guess: string, name: string): boolean {
+  const c = normalize(name);
+  if (!c) return false;
+  if (guess === c) return true;
   // Kleine Tippfehler erlauben: längere Namen dürfen etwas mehr abweichen.
   const tolerance = c.length > 8 ? 2 : 1;
-  return levenshtein(g, c) <= tolerance;
+  return levenshtein(guess, c) <= tolerance;
+}
+
+// Richtig, wenn der Tipp zu irgendeinem der gültigen Namen passt.
+export function isAnswerCorrect(guess: string, acceptedNames: string[]): boolean {
+  const g = normalize(guess);
+  if (!g) return false;
+  return acceptedNames.some((name) => matchesOne(g, name));
 }

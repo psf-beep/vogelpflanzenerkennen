@@ -4,6 +4,9 @@ Lern- und Wissensplattform über einheimische und ausländische Vögel und Pflan
 Zwei Kernfunktionen: ein **Lernkarten-Ratespiel** (Startseite) und eine
 **Wissensplattform** zum Nachschlagen.
 
+**🌐 Live:** <https://vogelpflanzenerkennen.vercel.app>
+(gehostet auf Vercel, Daten aus Supabase – veröffentlicht sich bei jedem Push automatisch neu)
+
 > Projektbeschreibung, Phasen und Design-Vorgaben stehen in [`CLAUDE.md`](./CLAUDE.md).
 > Datenmodell und Setup-Details unter [`docs/`](./docs).
 

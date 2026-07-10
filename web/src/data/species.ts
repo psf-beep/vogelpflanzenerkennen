@@ -38,9 +38,26 @@ interface RawSpecies {
   is_native: boolean;
   level: number;
   level_variant?: LevelVariant;
+  aliases?: string[]; // weitere gültige Namen (z. B. "Distelfink" für den Stieglitz)
   description: string;
   fun_fact: string;
   distribution_text: string;
+}
+
+// Weitere akzeptierte Namen je Art, nachgeschlagen über den wissenschaftlichen
+// Namen. Gilt auch für Arten, die aus Supabase kommen (dort ohne Alias-Feld).
+const ALIASES: Record<string, string[]> = Object.fromEntries(
+  (rawSpecies as RawSpecies[])
+    .filter((s) => s.aliases?.length)
+    .map((s) => [s.name_scientific, s.aliases as string[]]),
+);
+
+// Alle akzeptierten Rate-Namen einer Art: Hauptname + Aliase.
+export function acceptedNamesFor(species: {
+  name_common: string;
+  name_scientific: string;
+}): string[] {
+  return [species.name_common, ...(ALIASES[species.name_scientific] ?? [])];
 }
 
 // Erzeugt aus dem wissenschaftlichen Namen eine stabile, einfache ID.

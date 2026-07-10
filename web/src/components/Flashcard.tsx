@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import type { Species } from "@/data/species";
+import { acceptedNamesFor, type Species } from "@/data/species";
 import { isAnswerCorrect } from "@/lib/answer-check";
 import SpeciesImage from "./SpeciesImage";
 
@@ -10,28 +10,27 @@ import SpeciesImage from "./SpeciesImage";
 
 interface FlashcardProps {
   species: Species;
-  onCorrect: () => void; // meldet richtige Antwort nach oben (Tukan-Nicken)
+  onResult: (correct: boolean) => void; // meldet das Ergebnis nach oben (Punkte, Tukan-Nicken)
   onNext: () => void; // nächste Karte anfordern
+  awardedPoints?: number; // vergebene Punkte für diese Karte (für die "+N"-Anzeige)
 }
 
-export default function Flashcard({ species, onCorrect, onNext }: FlashcardProps) {
+export default function Flashcard({ species, onResult, onNext, awardedPoints = 0 }: FlashcardProps) {
   const [guess, setGuess] = useState("");
   const [revealed, setRevealed] = useState(false);
   const [wasCorrect, setWasCorrect] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
 
+  function reveal(correct: boolean) {
+    setWasCorrect(correct);
+    setRevealed(true);
+    onResult(correct);
+  }
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (revealed) return;
-    const correct = isAnswerCorrect(guess, species.name_common);
-    setWasCorrect(correct);
-    setRevealed(true);
-    if (correct) onCorrect();
-  }
-
-  function handleGiveUp() {
-    setWasCorrect(false);
-    setRevealed(true);
+    reveal(isAnswerCorrect(guess, acceptedNamesFor(species)));
   }
 
   return (
@@ -70,7 +69,7 @@ export default function Flashcard({ species, onCorrect, onNext }: FlashcardProps
               </button>
               <button
                 type="button"
-                onClick={handleGiveUp}
+                onClick={() => reveal(false)}
                 className="rounded-xl px-4 py-3 font-semibold text-muted transition hover:text-foreground"
               >
                 Auflösen
@@ -84,7 +83,9 @@ export default function Flashcard({ species, onCorrect, onNext }: FlashcardProps
                 wasCorrect ? "text-leaf" : "text-coral"
               }`}
             >
-              {wasCorrect ? "Richtig! 🎉" : "Nicht ganz – so sieht die Art aus:"}
+              {wasCorrect
+                ? `Richtig! ${awardedPoints > 0 ? `+${awardedPoints} Punkte ` : ""}🎉`
+                : "Nicht ganz – so sieht die Art aus:"}
             </p>
 
             <div>
