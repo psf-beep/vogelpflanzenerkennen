@@ -149,9 +149,12 @@ export default function GamePage() {
           </p>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-[1fr_300px] lg:items-start">
-          {/* Spielbereich */}
-          <div className="flex flex-col items-center gap-5">
+        <div className="grid gap-6 lg:grid-cols-[1fr_minmax(0,28rem)_1fr] lg:items-start">
+          {/* Platzhalter links, damit die Karte exakt mittig bleibt */}
+          <div className="hidden lg:block" aria-hidden />
+
+          {/* Spielbereich – mittig */}
+          <div className="flex w-full flex-col items-center gap-5">
             <CategorySlider value={category} onChange={setCategory} />
             <LevelSelector
               level={level}
@@ -178,8 +181,8 @@ export default function GamePage() {
             )}
           </div>
 
-          {/* Punktestand (rechts; auf kleinen Bildschirmen darüber) */}
-          <aside className="order-first lg:order-none lg:sticky lg:top-4">
+          {/* Punktestand rechts neben der Karte (auf kleinen Bildschirmen darunter) */}
+          <aside className="mx-auto w-full max-w-xs lg:mx-0 lg:w-[240px] lg:sticky lg:top-4">
             <ScorePanel
               level={level}
               levelPoints={levelPoints(progress, level)}
